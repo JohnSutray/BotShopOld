@@ -1,14 +1,10 @@
-﻿using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using ImportShopBot.Extensions;
+﻿using System.Threading.Tasks;
 using ImportShopCore;
 using ImportShopCore.Attributes;
 using ImportShopCore.Models;
-using ImportShopCore.Models.Account;
-using ImportShopCore.Models.Telegram;
+using ImportShopCore.Models.Entities;
 using Telegram.Bot.Types;
-using Chat = ImportShopCore.Models.Telegram.Chat;
+using Chat = ImportShopCore.Models.Entities.Chat;
 
 namespace ImportShopBot.Services {
   [Service]
@@ -25,12 +21,24 @@ namespace ImportShopBot.Services {
       User = user;
     }
 
-    public async Task EnsureChatSaved() {
-      if (await ByIdAsync(User.Id) != null) {
-        return;
+    public async Task UpdateChatQuery(string query) => await UpdateByIdAsync(
+      User.Id,
+      chat => chat.Query = query
+    );
+
+    public async Task UpdateChatAddress(string address) => await UpdateByIdAsync(
+      User.Id,
+      chat => chat.Address = address
+    );
+
+    public async Task<Chat> GetCurrentChat() => await ByIdAsync(User.Id);
+
+    public async Task<Chat> EnsureChatSaved() {
+      if (await ByIdAsync(User.Id) is {} existingChat) {
+        return existingChat;
       }
 
-      await AddEntityAsync(new Chat {
+      return await AddEntityAsync(new Chat {
         Id = User.Id,
         AccountId = Account.Id
       });

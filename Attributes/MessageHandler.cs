@@ -1,16 +1,22 @@
 ﻿using System;
 using System.Text.RegularExpressions;
+using ImportShopBot.Models;
+using JetBrains.Annotations;
 
 namespace ImportShopBot.Attributes {
   [AttributeUsage(AttributeTargets.Method)]
   public class MessageHandler : BaseHandler {
-    public Regex HandlerRegex { get; }
+    public MessageActionRoutingData RoutingData { get; }
 
     public MessageHandler(
-      string regex = null,
+      [RegexPattern] string messagePattern,
+      [RegexPattern] string queryPattern,
       bool clearDisplayBeforeHandle = true
-    ) : base(clearDisplayBeforeHandle) => HandlerRegex = regex != null
-      ? new Regex(regex)
-      : new Regex(".*");
+    ) : base(clearDisplayBeforeHandle) {
+      RoutingData = new MessageActionRoutingData {
+        MessagePattern = new Regex(messagePattern),
+        QueryPattern = new Regex(queryPattern)
+      };
+    }
   }
 }

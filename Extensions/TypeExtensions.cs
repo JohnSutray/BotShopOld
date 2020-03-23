@@ -16,23 +16,23 @@ namespace ImportShopBot.Extensions {
     public static bool HasMethodsWithAttribute<TAttribute>(this Type type) where TAttribute : Attribute =>
       type.GetMethodsWithAttribute<TAttribute>().Any();
 
-    public static MethodInfo FindQueryHandler(this Type type, string query) =>
-      type.GetMethodsWithAttribute<QueryHandler>().FirstOrDefault(
-        method => method.IsMatchQuery(query)
-      );
+    public static bool IsQueryController(this Type controller) => 
+      controller.HasMethodsWithAttribute<QueryHandler>();
 
-    private static bool IsMatchQuery(this MethodInfo method, string query) {
-      var attribute = method.GetCustomAttribute<QueryHandler>();
+    public static bool IsMessageController(this Type controller) =>
+      controller.HasMethodsWithAttribute<MessageHandler>();
 
-      return attribute.Template.MatchRoute(query) != null;
-    }
+    private static bool IsMatchQuery(this MethodInfo method, string query) => 
+      method.GetCustomAttribute<QueryHandler>()
+        .Template
+        .MatchRoute(query) != null;
 
-    public static IEnumerable<Models.ControllerAction<string>> GetQueryHandlers(this Type controller) {
+    public static IEnumerable<ControllerAction<string>> GetQueryActions(this Type controller) {
       return controller.GetMethodsWithAttribute<QueryHandler>()
         .Select(method => method.ToQueryAction(controller));
     }
-    
-    public static IEnumerable<Models.ControllerAction<Regex>> GetMessageHandlers(this Type controller) {
+
+    public static IEnumerable<ControllerAction<MessageActionRoutingData>> GetMessageActions(this Type controller) {
       return controller.GetMethodsWithAttribute<MessageHandler>()
         .Select(method => method.ToMessageAction(controller));
     }

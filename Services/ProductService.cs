@@ -4,7 +4,7 @@ using ImportShopCore;
 using ImportShopCore.Attributes;
 using ImportShopCore.Models;
 using ImportShopCore.Models.Account;
-using ImportShopCore.Models.Product;
+using ImportShopCore.Models.Entities;
 
 namespace ImportShopBot.Services {
   [Service]
@@ -16,9 +16,11 @@ namespace ImportShopBot.Services {
       Account = account;
     }
 
-    public async Task<IEnumerable<Product>> GetProducts() {
-      return await ByPatternManyAsync(product => product.Id == Account.Id);
-    }
+    public new async Task<Product> ByIdAsync(int productId) => await base.ByIdAsync(productId);
+
+    public async Task<IEnumerable<Product>> GetProducts() => await ByPatternManyAsync(
+      product => product.AccountId == Account.Id
+    );
 
     public async Task<List<Product>> ByCategoryAsync(string category) => await ByPatternManyAsync(
       product => product.AccountId == Account.Id && product.Category == category

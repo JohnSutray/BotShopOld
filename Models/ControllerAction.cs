@@ -2,19 +2,19 @@
 using System.Reflection;
 
 namespace ImportShopBot.Models {
-  public class ControllerAction<THandleBy> {
+  public class ControllerAction<TRoutingData> {
     public bool ClearDisplayBeforeHandle { get; }
-    public THandleBy HandleBy { get; }
+    public TRoutingData RoutingData { get; }
     public MethodInfo Handler { get; }
     public Type Controller { get; }
 
     public ControllerAction(
       Type controller,
       MethodInfo handler,
-      THandleBy handleBy,
+      TRoutingData routingData,
       bool clearDisplayBeforeHandle
     ) {
-      HandleBy = handleBy;
+      RoutingData = routingData;
       ClearDisplayBeforeHandle = clearDisplayBeforeHandle;
       Handler = handler;
       Controller = controller;

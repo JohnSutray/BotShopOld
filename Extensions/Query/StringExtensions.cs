@@ -1,8 +1,12 @@
-﻿using Microsoft.AspNetCore.Routing;
+﻿using System.Text.RegularExpressions;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.Routing.Template;
 
 namespace ImportShopBot.Extensions.Query {
   public static class StringExtensions {
+    public static bool IsRouteMatched(this string routeTemplate, string requestPath) =>
+      routeTemplate.MatchRoute(requestPath) != null;
+
     public static RouteValueDictionary MatchRoute(this string routeTemplate, string requestPath) {
       var templateWithSlash = routeTemplate.EnsureStartWithSlash();
       var requestPathWithSlash = requestPath.EnsureStartWithSlash();

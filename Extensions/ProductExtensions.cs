@@ -1,4 +1,4 @@
-﻿using ImportShopCore.Models.Product;
+﻿using ImportShopCore.Models.Entities;
 
 namespace ImportShopBot.Extensions {
   public static class ProductExtensions {
@@ -8,5 +8,12 @@ namespace ImportShopBot.Extensions {
       product.Description,
       $"Стоимость: {product.Price}р."
     );
+
+    public static string ToShortProductCaption(this Product product) => string.Join(
+      '\n',
+      product.Name,
+      product.Description.Length > 200 ? product.Description.Substring(0, 200) + "..." : product.Description,
+      $"Стоимость: {product.Price}р."
+      );
   }
 }

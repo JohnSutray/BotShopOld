@@ -5,7 +5,7 @@ using ImportShopCore.Attributes;
 using ImportShopCore.Enums;
 using ImportShopCore.Extensions.Media;
 using ImportShopCore.Models.Account;
-using ImportShopCore.Models.Telegram;
+using ImportShopCore.Models.Entities;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.InputFiles;
@@ -31,7 +31,7 @@ namespace ImportShopBot.Services {
       MessageService = messageService;
     }
 
-    public async Task<Message> SendTextWithMarkupAsync(string text, IReplyMarkup markup) =>
+    public async Task<Message> SendTextAsync(string text, IReplyMarkup markup = null) =>
       await SaveMessageAsync(
         await Client.SendTextMessageAsync(User.Id, text, replyMarkup: markup)
       );
@@ -49,7 +49,7 @@ namespace ImportShopBot.Services {
       await Client.SendVideoAsync(User.Id, video, caption: caption, replyMarkup: markup)
     );
 
-    public async Task<Message> SendMediaWithMarkupAsync(
+    public async Task<Message> SendMediaAsync(
       InputOnlineFile imageOrVideo, string caption, IReplyMarkup markup
     ) => imageOrVideo.Url.GetDisplayType() switch {
       EDisplayType.Video => await SendVideoWithMarkupAsync(imageOrVideo, caption, markup),
@@ -62,10 +62,5 @@ namespace ImportShopBot.Services {
 
       return message;
     }
-
-    private Task DeleteMessage(TelegramMessage telegramMessage) => Client.DeleteMessageAsync(
-      User.Id,
-      telegramMessage.Id
-    );
   }
 }

@@ -1,4 +1,4 @@
-﻿using ImportShopCore.Models.Telegram;
+﻿using ImportShopCore.Models.Entities;
 using Telegram.Bot.Types;
 
 namespace ImportShopBot.Extensions {

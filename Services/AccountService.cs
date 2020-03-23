@@ -2,6 +2,7 @@
 using ImportShopCore;
 using ImportShopCore.Attributes;
 using ImportShopCore.Models.Account;
+using ImportShopCore.Models.Entities;
 
 namespace ImportShopBot.Services {
   [Service]

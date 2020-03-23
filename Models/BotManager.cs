@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using ImportShopCore;
 using ImportShopCore.Models.Account;
+using ImportShopCore.Models.Entities;
 using ImportShopCore.Utils;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;

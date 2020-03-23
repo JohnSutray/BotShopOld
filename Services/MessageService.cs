@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 using ImportShopCore;
 using ImportShopCore.Attributes;
 using ImportShopCore.Models;
-using ImportShopCore.Models.Telegram;
+using ImportShopCore.Models.Entities;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 

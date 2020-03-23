@@ -7,7 +7,7 @@ namespace ImportShopBot.Extensions.Markup {
     public static InlineKeyboardMarkup ToInlineKeyboardColumn(this IDictionary<string, string> items) =>
       new InlineKeyboardMarkup(
         items.Select(
-          item => item.Key.ToInlineKeyboardButton(item.Value)
+          item => item.Key.ToInlineButton(item.Value)
         )
       );
   }
