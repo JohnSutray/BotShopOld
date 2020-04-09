@@ -19,20 +19,22 @@ namespace ImportShopBot.Services {
       c => c.CartItems
     ) => User = user;
 
-    public async Task AddToCartAsync(int productId) => await AddEntityAsync(new CartItem {
+    public void AddToCart(int productId) => AddEntity(new CartItem {
       ChatId = User.Id,
       ProductId = productId
     });
 
-    public async Task<List<CartItem>> GetCartItemsAsync() => await ByPatternManyAsync(
+    public List<CartItem> GetCartItems() => ByPatternMany(
       item => item.ChatId == User.Id,
       item => item.Product
     );
 
-    public async Task RemoveFromCartAsync(int cartItemId) => await RemoveByIdAsync(cartItemId);
+    public void RemoveFromCartAsync(int cartItemId) => RemoveById(cartItemId);
 
-    public async Task<bool> IsCartEmpty() {
-      var itemsAmount = await CountAsync(item => item.ChatId == User.Id);
+    public void ClearCart() => RemoveManyByPattern(item => item.ChatId == User.Id);
+
+    public bool IsCartEmpty() {
+      var itemsAmount = Count(item => item.ChatId == User.Id);
 
       return itemsAmount == 0;
     }

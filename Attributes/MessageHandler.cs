@@ -11,11 +11,13 @@ namespace ImportShopBot.Attributes {
     public MessageHandler(
       [RegexPattern] string messagePattern,
       [RegexPattern] string queryPattern,
-      bool clearDisplayBeforeHandle = true
+      bool clearDisplayBeforeHandle = true,
+      int priority = 1
     ) : base(clearDisplayBeforeHandle) {
       RoutingData = new MessageActionRoutingData {
         MessagePattern = new Regex(messagePattern),
-        QueryPattern = new Regex(queryPattern)
+        LatestQuery = new Regex(queryPattern),
+        Priority = priority
       };
     }
   }

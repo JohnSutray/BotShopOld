@@ -28,15 +28,15 @@ namespace ImportShopBot.Controllers {
 
     [UsedImplicitly]
     [QueryHandler(Queries.Categories)]
-    public async Task OpenCategoryList() {
-      var products = await ProductService.GetProducts();
+    public void OpenCategoryList() {
+      var products = ProductService.GetProducts();
 
       var categoryList = products
         .GetGroups(p => p.Category)
         .ToDictionary(c => c, Queries.TypesListQuery)
         .ToInlineKeyboardColumn();
 
-      await ReplyService.SendTextAsync(Labels.ChooseCategory, categoryList);
+      ReplyService.SendText(Labels.ChooseCategory, categoryList);
     }
 
     [UsedImplicitly]
@@ -47,9 +47,9 @@ namespace ImportShopBot.Controllers {
       Variables.Category +
       Queries.EndInterpolation
     )]
-    public async Task OpenTypeList() {
+    public void OpenTypeList() {
       var category = RouteValues.GetValue(Variables.Category);
-      var products = await ProductService.ByCategoryAsync(category);
+      var products = ProductService.ByCategory(category);
 
       var productTypesList = products
         .GetGroups(p => p.Type)
@@ -59,7 +59,7 @@ namespace ImportShopBot.Controllers {
         )
         .ToInlineKeyboardColumn();
 
-      await ReplyService.SendTextAsync(Labels.ChooseType, productTypesList);
+      ReplyService.SendText(Labels.ChooseType, productTypesList);
     }
 
     [UsedImplicitly]
@@ -78,22 +78,24 @@ namespace ImportShopBot.Controllers {
       Variables.Page +
       Queries.EndInterpolation
     )]
-    public async Task OpenProductList() {
+    public void OpenProductList() {
       var category = RouteValues.GetValue(Variables.Category);
       var type = RouteValues.GetValue(Variables.Type);
       var page = RouteValues.GetValue(Variables.Page).ParseInt();
 
-      await PaginateProductList(category, type, page);
+      PaginateProductList(category, type, page);
     }
 
     private const int ProductPageLimit = 3;
 
-    private async Task PaginateProductList(string category, string type, int page) {
-      var productPage = await ProductService.PaginateAsync(category, type, page, ProductPageLimit);
+    private void PaginateProductList(string category, string type, int page) {
+      var productPage = ProductService.Paginate(category, type, page, ProductPageLimit);
+
       var sendProductTasks = productPage.Items.SkipLast(1).Select(SendProduct).ToList();
 
-      await Task.WhenAll(sendProductTasks);
-      await SendProductWithPaginationMarkup(
+      Task.WhenAll(sendProductTasks).GetAwaiter().GetResult();
+
+      SendProductWithPaginationMarkup(
         productPage.Items.Last(),
         category,
         type,
@@ -101,24 +103,24 @@ namespace ImportShopBot.Controllers {
       );
     }
 
-    private Task SendProduct(Product product) => ReplyService.SendMediaAsync(
+    private Task SendProduct(Product product) => Task.Run(() => ReplyService.SendMedia(
       product.MediaUrl.ToInputMedia(),
       product.ToProductCaption(),
       Markups.AddToCartButton(product.Id)
-    );
+    ));
 
-    private Task SendProductWithPaginationMarkup(
-      Product product, string category, string type, PaginateResult<Product> paginateResult
+    private void SendProductWithPaginationMarkup(
+      Product product, string category, string type, PaginationResult<Product> paginationResult
     ) {
       var paginationMarkup = Markups.PaginationKeyboard(
         category,
         type,
-        paginateResult.Page,
-        !paginateResult.IsFirstPage,
-        !paginateResult.IsLastPage
+        paginationResult.Page,
+        !paginationResult.IsFirstPage,
+        !paginationResult.IsLastPage
       );
 
-      return ReplyService.SendMediaAsync(
+      ReplyService.SendMedia(
         product.MediaUrl.ToInputMedia(),
         product.ToProductCaption(),
         Markups.AddToCartButton(product.Id)

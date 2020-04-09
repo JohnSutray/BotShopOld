@@ -16,6 +16,8 @@
     public const string InputAddress = "Пожалуйста, введите адрес доставки.";
     public const string InputPhone = "Пожалуйста, введите свой номер телефона." +
                                      "\nТелефон может быть таким +375ххххххххх";
+
+    public const string OrderCompleted = "Ваш заказ успешно оформлен. Мы свяжемся с вами в ближайшее время";
     public const string Yes = "Да";
     public const string No = "Нет";
 

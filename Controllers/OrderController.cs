@@ -1,4 +1,4 @@
-﻿using System.Threading.Tasks;
+﻿using System;
 using ImportShopBot.Attributes;
 using ImportShopBot.Constants;
 using ImportShopBot.Extensions;
@@ -13,72 +13,85 @@ namespace ImportShopBot.Controllers {
     private ReplyService ReplyService { get; }
     private CartService CartService { get; }
     private ChatService ChatService { get; }
+    private OrderService OrderService { get; }
 
     public OrderController(
       ReplyService replyService,
       CartService cartService,
       RouteValueDictionary routeValues,
-      ChatService chatService
+      ChatService chatService,
+      OrderService orderService
     ) {
       ReplyService = replyService;
       CartService = cartService;
       RouteValues = routeValues;
       ChatService = chatService;
+      OrderService = orderService;
     }
 
     [UsedImplicitly]
     [QueryHandler(Queries.Order)]
-    public async Task StartOrderProcessing() {
-      if (await CartService.IsCartEmpty()) {
-        await SendCannotCompleteEmptyOrder();
+    public void StartOrderProcessing() {
+      if (CartService.IsCartEmpty()) {
+        SendCannotCompleteEmptyOrderPage();
         return;
       }
 
-      await SendShippingConfirmation();
+      SendShippingConfirmationPage();
     }
 
     [UsedImplicitly]
-    [QueryHandler(Queries.InputShippingAddress)]
-    public async Task InputShippingAddress() {
-      var chat = await ChatService.GetCurrentChat();
+    [QueryHandler(Queries.InputAddress)]
+    public void InputAddress() {
+      var chat = ChatService.GetCurrentChat();
 
-      await SendInputAddress(chat.Address);
+      SendInputAddressPage(chat.Address);
     }
 
     [UsedImplicitly]
-    [QueryHandler(
-      Queries.InputShippingAddress +
-      Queries.Separator +
-      Queries.StartInterpolation +
-      Variables.Address +
-      Queries.EndInterpolation
-    )]
-    public async Task SaveShippingAddress() {
-      var address = RouteValues.GetValue(Variables.Address);
-      await ChatService.UpdateChatAddress(address);
-      var chat = await ChatService.GetCurrentChat();
+    [QueryHandler(Queries.AcceptAddress)]
+    public void AcceptShippingAddress() {
+      var address = RouteValues.GetValue(Queries.Address);
+      ChatService.UpdateChatAddress(address);
+      var chat = ChatService.GetCurrentChat();
 
-      await SendInputPhoneMessage(chat.Phone);
+      SendInputPhonePage(chat.Phone);
     }
 
-    private async Task SendInputAddress(string previousAddress) => await ReplyService.SendTextAsync(
+    [UsedImplicitly]
+    [QueryHandler(Queries.AcceptPhone)]
+    public void AcceptPhone() {
+      var phone = RouteValues.GetValue(Queries.Phone);
+      ChatService.UpdateChatPhone(phone);
+      OrderService.SaveOrder();
+      CartService.ClearCart();
+
+      SendOrderCompletedPage();
+    }
+
+    private void SendInputAddressPage(string previousAddress) => ReplyService.SendText(
       Labels.InputAddress,
       previousAddress.ToKeyboardButton().ToKeyboard()
     );
 
-    private async Task SendInputPhoneMessage(string previousPhone) => await ReplyService.SendTextAsync(
+    private void SendInputPhonePage(string previousPhone) => ReplyService.SendText(
       Labels.InputPhone,
       previousPhone.ToKeyboardButton().ToKeyboard()
     );
 
-    private async Task SendCannotCompleteEmptyOrder() => await ReplyService.SendTextAsync(
+    private void SendCannotCompleteEmptyOrderPage() => ReplyService.SendText(
       Labels.CannotCompleteEmptyOrder,
       Markups.ToMainMenuButton.ToInlineKeyboard()
     );
 
-    private async Task SendShippingConfirmation() => await ReplyService.SendTextAsync(
+    private void SendShippingConfirmationPage() => ReplyService.SendText(
       Labels.AreYouNeedShipping,
       Markups.ShippingConfirmationKeyboard
+    );
+
+    private void SendOrderCompletedPage() => ReplyService.SendText(
+      Labels.OrderCompleted,
+      Markups.ToMainMenuButton.ToInlineKeyboard()
     );
   }
 }

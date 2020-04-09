@@ -31,19 +31,19 @@ namespace ImportShopBot.Controllers {
 
     [UsedImplicitly]
     [QueryHandler(Queries.Cart)]
-    public async Task ShowCart() {
-      var cartItems = await CartService.GetCartItemsAsync();
+    public void ShowCart() {
+      var cartItems = CartService.GetCartItems();
 
       if (!cartItems.Any()) {
-        await SendEmptyCart();
+        SendEmptyCart();
         return;
       }
 
       foreach (var cartItem in cartItems.SkipLast(1)) {
-        await SendCartItem(cartItem);
+        SendCartItem(cartItem);
       }
 
-      await SendCartItemWithMainMenuButton(cartItems.Last());
+      SendCartItemWithMainMenuButton(cartItems.Last());
     }
 
     [UsedImplicitly]
@@ -55,12 +55,11 @@ namespace ImportShopBot.Controllers {
       Queries.EndInterpolation,
       false
     )]
-    public async Task AddToCart() {
+    public void AddToCart() {
       var productId = RouteValues.GetValue(Variables.ProductId).ParseInt();
-      var product = await ProductService.ByIdAsync(productId);
-      await CartService.AddToCartAsync(productId);
-
-      await ReplyService.SendTextAsync(Labels.AddedToCart(product.Name));
+      var product = ProductService.ById(productId);
+      CartService.AddToCart(productId);
+      ReplyService.SendText(Labels.AddedToCart(product.Name));
     }
 
     [UsedImplicitly]
@@ -71,25 +70,25 @@ namespace ImportShopBot.Controllers {
       Variables.CartItemId +
       Queries.EndInterpolation
     )]
-    public async Task RemoveFromCart() {
+    public void RemoveFromCart() {
       var cartItemId = RouteValues.GetValue(Variables.CartItemId).ParseInt();
-      await CartService.RemoveFromCartAsync(cartItemId);
+      CartService.RemoveFromCartAsync(cartItemId);
 
-      await ShowCart();
+      ShowCart();
     }
 
-    private async Task SendEmptyCart() => await ReplyService.SendTextAsync(
+    private void SendEmptyCart() => ReplyService.SendText(
       Labels.CartIsEmpty,
       Markups.ToMainMenuButton.ToInlineKeyboard()
     );
 
-    private async Task SendCartItem(CartItem cartItem) => await ReplyService.SendMediaAsync(
+    private void SendCartItem(CartItem cartItem) => ReplyService.SendMedia(
       cartItem.Product.MediaUrl.ToInputMedia(),
       cartItem.Product.ToShortProductCaption(),
       Markups.RemoveFromCartButton(cartItem.Id)
     );
 
-    private async Task SendCartItemWithMainMenuButton(CartItem cartItem) => await ReplyService.SendMediaAsync(
+    private void SendCartItemWithMainMenuButton(CartItem cartItem) => ReplyService.SendMedia(
       cartItem.Product.MediaUrl.ToInputMedia(),
       cartItem.Product.ToShortProductCaption(),
       Markups.RemoveFromCartButton(cartItem.Id).Append(Markups.ToMainMenuButton)

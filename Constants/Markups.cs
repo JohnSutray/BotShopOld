@@ -63,8 +63,8 @@ namespace ImportShopBot.Constants {
       .ToInlineKeyboard();
 
     public static readonly InlineKeyboardMarkup ShippingConfirmationKeyboard = new InlineKeyboardMarkup(new[] {
-      Labels.Yes.ToInlineButton(Queries.InputShippingAddress),
-      Labels.No.ToInlineButton(Queries.CompleteOrderPhone)
+      Labels.Yes.ToInlineButton(Queries.InputAddress),
+      Labels.No.ToInlineButton(Queries.InputPhone)
     });
   }
 }

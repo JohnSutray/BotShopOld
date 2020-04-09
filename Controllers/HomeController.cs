@@ -12,10 +12,10 @@ namespace ImportShopBot.Controllers {
 
     [UsedImplicitly]
     [QueryHandler(Queries.MainMenu)]
-    public async Task Menu() => await ReplyService.SendTextAsync(Labels.MainMenu, Markups.MainMenuKeyboard);
+    public void Menu() => ReplyService.SendText(Labels.MainMenu, Markups.MainMenuKeyboard);
 
     [UsedImplicitly]
-    [MessageHandler(Queries.Start, Queries.AnySequence)]
+    [MessageHandler(Queries.Start, Queries.AnySequence, priority: 2)]
     public string MapMenu() => Queries.MainMenu;
   }
 }

@@ -1,9 +1,7 @@
 ﻿using System.Collections.Generic;
-using System.Threading.Tasks;
 using ImportShopCore;
 using ImportShopCore.Attributes;
 using ImportShopCore.Models;
-using ImportShopCore.Models.Account;
 using ImportShopCore.Models.Entities;
 
 namespace ImportShopBot.Services {
@@ -16,22 +14,22 @@ namespace ImportShopBot.Services {
       Account = account;
     }
 
-    public new async Task<Product> ByIdAsync(int productId) => await base.ByIdAsync(productId);
+    public new Product ById(int productId) => base.ById(productId);
 
-    public async Task<IEnumerable<Product>> GetProducts() => await ByPatternManyAsync(
+    public IEnumerable<Product> GetProducts() => ByPatternMany(
       product => product.AccountId == Account.Id
     );
 
-    public async Task<List<Product>> ByCategoryAsync(string category) => await ByPatternManyAsync(
+    public List<Product> ByCategory(string category) => ByPatternMany(
       product => product.AccountId == Account.Id && product.Category == category
     );
 
-    public async Task<PaginateResult<Product>> PaginateAsync(
+    public PaginationResult<Product> Paginate(
       string category,
       string type,
       int page,
       int limit
-    ) => await PaginateByPatternAsync(
+    ) => PaginateByPattern(
       product => product.AccountId == Account.Id && product.Category == category && product.Type == type,
       page,
       limit

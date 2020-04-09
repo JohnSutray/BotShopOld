@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 using System.Threading.Tasks;
 using ImportShopCore;
 using ImportShopCore.Attributes;
@@ -25,14 +26,19 @@ namespace ImportShopBot.Services {
       Client = client;
     }
 
-    public async Task ClearMessagesAsync() {
-      var messages = await RemoveManyByPatternAsync(message => message.ChatId == User.Id);
+    public void ClearMessages() {
+      var messages = RemoveManyByPattern(message => message.ChatId == User.Id);
       Task DeleteMessage(TelegramMessage message) => Client.DeleteMessageAsync(User.Id, message.Id);
 
-      await Task.WhenAll(messages.Select(DeleteMessage));
+      try {
+        Task.WhenAll(messages.Select(DeleteMessage)).GetAwaiter().GetResult();
+      }
+      catch (Exception e) {
+        Console.WriteLine(e);
+      }
     }
 
-    public async Task SaveMessageAsync(Message message) => await AddEntityAsync(
+    public void SaveMessage(Message message) => AddEntity(
       new TelegramMessage {
         Id = message.MessageId,
         ChatId = User.Id

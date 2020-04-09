@@ -1,9 +1,7 @@
 ﻿using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using ImportShopCore;
-using ImportShopCore.Models.Account;
 using ImportShopCore.Models.Entities;
 using ImportShopCore.Utils;
 using Microsoft.EntityFrameworkCore;
@@ -11,9 +9,7 @@ using Microsoft.Extensions.Configuration;
 
 namespace ImportShopBot.Models {
   public class BotManager {
-    public BotManager() {
-      _applicationContext = new ApplicationContext(_configuration);
-    }
+    public BotManager() => _applicationContext = new ApplicationContext(_configuration);
 
     private readonly List<Bot> _tmBotInstances = new List<Bot>();
 
@@ -21,10 +17,10 @@ namespace ImportShopBot.Models {
 
     private readonly ApplicationContext _applicationContext;
 
-    private Task<List<Account>> Accounts => _applicationContext.Accounts.ToListAsync();
+    private List<Account> Accounts => _applicationContext.Accounts.ToList();
 
-    public async void UpdateBots() {
-      var allAccounts = await Accounts;
+    public void UpdateBots() {
+      var allAccounts = Accounts;
       
       var activeAccounts = _tmBotInstances.Select(
         bot => allAccounts.First(account => account.Id == bot.Account.Id)

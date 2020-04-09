@@ -1,10 +1,7 @@
 ﻿using System;
-using System.Linq;
-using System.Threading.Tasks;
 using ImportShopCore.Attributes;
 using ImportShopCore.Enums;
 using ImportShopCore.Extensions.Media;
-using ImportShopCore.Models.Account;
 using ImportShopCore.Models.Entities;
 using Telegram.Bot;
 using Telegram.Bot.Types;
@@ -31,34 +28,34 @@ namespace ImportShopBot.Services {
       MessageService = messageService;
     }
 
-    public async Task<Message> SendTextAsync(string text, IReplyMarkup markup = null) =>
-      await SaveMessageAsync(
-        await Client.SendTextMessageAsync(User.Id, text, replyMarkup: markup)
+    public Message SendText(string text, IReplyMarkup markup = null) =>
+      SaveMessageAsync(
+        Client.SendTextMessageAsync(User.Id, text, replyMarkup: markup).GetAwaiter().GetResult()
       );
 
-    private async Task<Message> SendPhotoWithMarkupAsync(
+    private Message SendPhotoWithMarkup(
       InputOnlineFile file, string caption, IReplyMarkup markup
-    ) => await SaveMessageAsync(
-      await Client.SendPhotoAsync(User.Id, file, caption, replyMarkup: markup)
+    ) => SaveMessageAsync(
+      Client.SendPhotoAsync(User.Id, file, caption, replyMarkup: markup).GetAwaiter().GetResult()
     );
 
 
-    private async Task<Message> SendVideoWithMarkupAsync(
+    private Message SendVideoWithMarkup(
       InputOnlineFile video, string caption, IReplyMarkup markup
-    ) => await SaveMessageAsync(
-      await Client.SendVideoAsync(User.Id, video, caption: caption, replyMarkup: markup)
+    ) => SaveMessageAsync(
+      Client.SendVideoAsync(User.Id, video, caption: caption, replyMarkup: markup).GetAwaiter().GetResult()
     );
 
-    public async Task<Message> SendMediaAsync(
+    public Message SendMedia(
       InputOnlineFile imageOrVideo, string caption, IReplyMarkup markup
     ) => imageOrVideo.Url.GetDisplayType() switch {
-      EDisplayType.Video => await SendVideoWithMarkupAsync(imageOrVideo, caption, markup),
-      EDisplayType.Image => await SendPhotoWithMarkupAsync(imageOrVideo, caption, markup),
+      EDisplayType.Video => SendVideoWithMarkup(imageOrVideo, caption, markup),
+      EDisplayType.Image => SendPhotoWithMarkup(imageOrVideo, caption, markup),
       _ => throw new ArgumentOutOfRangeException()
     };
 
-    public async Task<Message> SaveMessageAsync(Message message) {
-      await MessageService.SaveMessageAsync(message);
+    public Message SaveMessageAsync(Message message) {
+      MessageService.SaveMessage(message);
 
       return message;
     }

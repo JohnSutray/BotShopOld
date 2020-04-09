@@ -30,29 +30,25 @@ namespace ImportShopBot.Models {
     private TelegramBotClient BotClient { get; set; }
     private IConfiguration Configuration { get; }
 
-    private readonly List<ControllerAction<string>> _queryActions = typeof(Bot)
-      .Assembly
+    private readonly List<ControllerAction<string>> _queryActions = typeof(Bot).Assembly
       .GetTypes()
       .Where(controller => controller.IsQueryController())
       .SelectMany(controller => controller.GetQueryActions())
       .ToList();
 
-    private readonly List<ControllerAction<MessageActionRoutingData>> _messageActions = typeof(Bot)
-      .Assembly
+    private readonly List<ControllerAction<MessageActionRoutingData>> _messageActions = typeof(Bot).Assembly
       .GetTypes()
       .Where(controller => controller.IsMessageController())
       .SelectMany(controller => controller.GetMessageActions())
+      .OrderByDescending(action => action.RoutingData.Priority)
       .ToList();
-    
-    
+
     private void ValidateQueryActions(ControllerAction<string> action) {
-      if (action.Handler.ReturnType != typeof(Task)) {
+      if (action.Handler.ReturnType != typeof(void)) {
         throw new ArgumentOutOfRangeException(
-          "\n" +
-          "Invalid controller action return type.\n" +
-          $"${action.Controller.Name}.${action.Handler.Name}() => ${action.Handler.ReturnType.Name}\n" +
-          $"Return data must be of type ${typeof(Task).Name}" +
-          "\n"
+          "Invalid controller action return type. " +
+          $"${action.Controller.Name}.${action.Handler.Name}() => ${action.Handler.ReturnType.Name} " +
+          $"Return data must be of type ${typeof(void).Name}"
         );
       }
     }
@@ -69,15 +65,26 @@ namespace ImportShopBot.Models {
       }
     }
 
-    private void HandleMessage(object sender, MessageEventArgs args) =>
-      Task.Run(() => RootMessageHandler(args.Message));
+    private void HandleMessage(object sender, MessageEventArgs args) {
+      try {
+        RootMessageHandler(args.Message);
+      }
+      catch (Exception e) {
+        Console.WriteLine(e);
+      }
+    }
 
     private void HandleQuery(object sender, CallbackQueryEventArgs args) {
-      Task.Run(() => RootQueryHandler(args.CallbackQuery));
+      try {
+        RootQueryHandler(args.CallbackQuery);
+      }
+      catch (Exception e) {
+        Console.WriteLine(e);
+      }
     }
 
     public void Start() {
-      BotClient = new TelegramBotClient(Account.TelegramToken) { MessageOffset = 1000 };
+      BotClient = new TelegramBotClient(Account.TelegramToken) {MessageOffset = 1000};
       BotClient.OnMessage += HandleMessage;
       BotClient.OnCallbackQuery += HandleQuery;
       BotClient.StartReceiving();
@@ -89,8 +96,10 @@ namespace ImportShopBot.Models {
       ControllerAction<MessageActionRoutingData> action,
       Chat chat,
       Message message
-    ) => action.RoutingData.MessagePattern.IsMatch(message.Text)
-         && action.RoutingData.QueryPattern.IsMatch(chat.Query);
+    ) {
+      return action.RoutingData.MessagePattern.IsMatch(message.Text)
+             && action.RoutingData.LatestQuery.IsMatch(chat.Query);
+    }
 
     private void LogNoMessageHandler(Message message, Chat chat) => Console.WriteLine(
       $"There is no handler for message {message.Text}\n" +
@@ -109,22 +118,20 @@ namespace ImportShopBot.Models {
       Console.WriteLine("\n");
     }
 
-    private async Task RootMessageHandler(Message message) {
+    private void RootMessageHandler(Message message) {
       Console.WriteLine($"Incoming message: {message.Text}");
       LogEventSource(message.From);
 
       var serviceCollection = CreateMessageHandlerServiceProvider(message);
-      await using var provider = serviceCollection.BuildServiceProvider();
+      using var provider = serviceCollection.BuildServiceProvider();
       using var scope = provider.CreateScope();
       var chatService = scope.ServiceProvider.GetRequiredService<ChatService>();
+      var messageService = scope.ServiceProvider.GetRequiredService<MessageService>();
+      var chat = chatService.EnsureChatSaved();
 
-      var chat = await chatService.EnsureChatSaved();
-      await scope.ServiceProvider.GetRequiredService<MessageService>()
-        .SaveMessageAsync(message);
+      messageService.SaveMessage(message);
 
-      var messageAction = _messageActions.FirstOrDefault(
-        action => IsMessageActionMatch(action, chat, message)
-      );
+      var messageAction = _messageActions.FirstOrDefault(action => IsMessageActionMatch(action, chat, message));
 
       if (messageAction == null) {
         LogNoMessageHandler(message, chat);
@@ -133,17 +140,17 @@ namespace ImportShopBot.Models {
 
       var controller = scope.ServiceProvider.GetRequiredService(messageAction.Controller);
       var queryMap = messageAction.Handler.Invoke(controller, null) as string;
-      var query = new CallbackQuery { Data = queryMap, From = message.From };
-      
-      await RootQueryHandler(query);
+      var query = new CallbackQuery {Data = queryMap, From = message.From};
+
+      RootQueryHandler(query);
     }
 
-    private async Task RootQueryHandler(CallbackQuery query) {
+    private void RootQueryHandler(CallbackQuery query) {
       LogEventSource(query.From);
       Console.WriteLine($"Query:   {query.Data}");
 
       var queryAction = _queryActions.FirstOrDefault(action => action.RoutingData.IsRouteMatched(query.Data));
-      
+
       if (queryAction == null) {
         Console.WriteLine($"There is no handler for query ${query.Data}\n\n");
         return;
@@ -154,32 +161,26 @@ namespace ImportShopBot.Models {
       LogQueryMatch(queryAction, matchedData);
 
       var serviceCollection = CreateQueryHandlerServiceProvider(query, matchedData);
-      await using var provider = serviceCollection.BuildServiceProvider();
+      using var provider = serviceCollection.BuildServiceProvider();
       using var scope = provider.CreateScope();
+      var chatService = scope.ServiceProvider.GetRequiredService<ChatService>();
+
+      chatService.EnsureChatSaved();
 
       if (queryAction.ClearDisplayBeforeHandle) {
         var messageService = scope.ServiceProvider.GetRequiredService<MessageService>();
-        await messageService.ClearMessagesAsync();
+        messageService.ClearMessages();
       }
 
-      await HandleQuery(scope, queryAction.Controller, queryAction.Handler);
+      HandleQuery(scope, queryAction.Controller, queryAction.Handler);
 
-      var chatService = scope.ServiceProvider.GetRequiredService<ChatService>();
-      await chatService.UpdateChatQuery(query.Data);
-      
-      
+      chatService.UpdateChatQuery(queryAction.RoutingData);
     }
 
-    private async Task HandleQuery(IServiceScope scope, Type controller, MethodInfo handler) {
+    private void HandleQuery(IServiceScope scope, Type controller, MethodInfo handler) {
       var controllerInstance = scope.ServiceProvider.GetRequiredService(controller);
-      var handleTask = handler.Invoke(controllerInstance, null) as Task;
 
-      try {
-        await handleTask;
-      }
-      catch (Exception e) {
-        Console.WriteLine(e);
-      }
+      handler.Invoke(controllerInstance, null);
     }
 
     private IServiceCollection CreateQueryHandlerServiceProvider(
@@ -202,7 +203,7 @@ namespace ImportShopBot.Models {
           .AddSingleton(Account)
           .AddSingleton(Configuration)
           .AddTransient<ApplicationContext>()
-          .AddAssemblyServices(typeof(Bot).Assembly);
+          .AddAssemblyServices(GetType().Assembly);
 
         _messageActions.ForEach(action => services.AddTransient(action.Controller));
         _queryActions.ForEach(action => services.AddTransient(action.Controller));
