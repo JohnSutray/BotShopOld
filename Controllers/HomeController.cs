@@ -1,21 +1,19 @@
-﻿using System.Threading.Tasks;
-using ImportShopBot.Attributes;
-using ImportShopBot.Constants;
-using ImportShopBot.Services;
-using JetBrains.Annotations;
+﻿using BotCore.Attributes;
+using BotShop.Models.ViewModels;
+using BotShop.Services;
 
-namespace ImportShopBot.Controllers {
+namespace BotShop.Controllers {
   public class HomeController {
-    private ReplyService ReplyService { get; }
+    [BotQueryAction("menu")]
+    public MenuViewModel Menu(ViewModelService viewModelService) => viewModelService.GetTranslatedMenuList(
+      "headers.main-menu",
+      ("buttons.categories", "categories"),
+      ("buttons.cart", "cart"),
+      ("buttons.order", "order"),
+      ("buttons.feedback", "feedback")
+    );
 
-    public HomeController(ReplyService replyService) => ReplyService = replyService;
-
-    [UsedImplicitly]
-    [QueryHandler(Queries.MainMenu)]
-    public void Menu() => ReplyService.SendText(Labels.MainMenu, Markups.MainMenuKeyboard);
-
-    [UsedImplicitly]
-    [MessageHandler(Queries.Start, Queries.AnySequence, priority: 2)]
-    public string MapMenu() => Queries.MainMenu;
+    [BotMessageAction("/start", ".*", priority: 2)]
+    public string MapMenu() => "menu";
   }
 }

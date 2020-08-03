@@ -1,7 +1,7 @@
 ﻿using System.Linq;
 using Telegram.Bot.Types.ReplyMarkups;
 
-namespace ImportShopBot.Extensions.Markup {
+namespace BotShop.Extensions.Markup {
   public static class MarkupExtensions {
     public static InlineKeyboardMarkup Append(
       this InlineKeyboardMarkup markup, InlineKeyboardMarkup extraMarkup

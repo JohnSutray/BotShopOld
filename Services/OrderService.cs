@@ -1,37 +1,41 @@
 ﻿using System;
-using ImportShopCore;
-using ImportShopCore.Attributes;
-using ImportShopCore.Models;
-using ImportShopCore.Models.Entities;
+using BotCore.Interfaces;
+using BotShopCore;
+using BotShopCore.Attributes;
+using BotShopCore.Models;
+using BotShopCore.Models.Entities;
+using Microsoft.EntityFrameworkCore;
 
-namespace ImportShopBot.Services {
+namespace BotShop.Services {
   [Service]
   public class OrderService : RepositoryService<Order> {
-    private ChatService ChatService { get; }
-    private OrderItemService OrderItemService { get; }
-    private Account Account { get; }
+    private readonly ChatService _chatService;
+    private readonly OrderItemService _orderItemService;
+    private readonly Account _account;
 
     public OrderService(
       ApplicationContext context,
       ChatService chatService,
       OrderItemService orderItemService,
       Account account
-    ) : base(context, c => c.Orders) {
-      ChatService = chatService;
-      OrderItemService = orderItemService;
-      Account = account;
+    ) : base(context) {
+      _chatService = chatService;
+      _orderItemService = orderItemService;
+      _account = account;
     }
 
-    public void SaveOrder() {
-      var chat = ChatService.GetCurrentChat();
+    public void SaveOrder(IBotInputChat inputChat) {
+      var chat = _chatService.FindChat(inputChat);
       var orderDto = new Order {
-        ChatId = chat.Id, 
+        ChatId = chat.Id,
         CreatedAt = DateTime.Now,
-        AccountId = Account.Id
+        AccountId = _account.Id
       };
       var order = AddEntity(orderDto);
 
-      OrderItemService.SaveOrderItems(order.Id);
+      _orderItemService.SaveOrderItems(inputChat, order.Id);
     }
+
+    protected override DbSet<Order> Set => Context.Orders;
   }
 }

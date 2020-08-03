@@ -1,45 +1,35 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
-using ImportShopCore;
-using ImportShopCore.Models.Entities;
-using ImportShopCore.Utils;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
+using BotShopCore;
+using BotShopCore.Models.Entities;
 
-namespace ImportShopBot.Models {
+namespace BotShop.Models {
   public class BotManager {
-    public BotManager() => _applicationContext = new ApplicationContext(_configuration);
-
-    private readonly List<Bot> _tmBotInstances = new List<Bot>();
-
-    private readonly IConfiguration _configuration = ConfigurationUtils.CreateAppSettingsConfiguration();
-
+    private readonly List<BotHub> _hubs = new List<BotHub>();
     private readonly ApplicationContext _applicationContext;
 
-    private List<Account> Accounts => _applicationContext.Accounts.ToList();
+    public BotManager() => _applicationContext = new ApplicationContext();
+
+    private List<Account> GetCurrentAccounts() => _applicationContext.Accounts.ToList();
 
     public void UpdateBots() {
-      var allAccounts = Accounts;
-      
-      var activeAccounts = _tmBotInstances.Select(
-        bot => allAccounts.First(account => account.Id == bot.Account.Id)
-      );
-      var accountsToBootstrap = allAccounts.Except(activeAccounts);
-      var accountsToKill = activeAccounts.Except(allAccounts);
+      var currentAccounts = GetCurrentAccounts();
+      var activeAccounts = _hubs.Select(
+        bot => currentAccounts.First(account => account.Id == bot.Account.Id)
+      ).ToList();
+      var accountsToBootstrap = currentAccounts.Except(activeAccounts).ToList();
+      var accountsToKill = activeAccounts.Except(currentAccounts).ToList();
 
-      accountsToBootstrap.ToList().ForEach(BootstrapBot);
-      accountsToKill.ToList().ForEach(KillBot);
+      accountsToBootstrap.ForEach(StartHub);
+      accountsToKill.ForEach(StopHub);
     }
 
-    private void BootstrapBot(Account account) {
-      var bot = new Bot(account, _configuration);
+    private void StartHub(Account account) {
+      var bot = new BotHub(account);
       bot.Start();
-      _tmBotInstances.Add(bot);
+      _hubs.Add(bot);
     }
 
-    private void KillBot(Account account) => _tmBotInstances
-      .First(b => b.Account.Id == account.Id)
-      .Stop();
+    private void StopHub(Account account) => _hubs.First(b => b.Account.Id == account.Id).Stop();
   }
 }

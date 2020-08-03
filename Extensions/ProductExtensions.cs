@@ -1,6 +1,6 @@
-﻿using ImportShopCore.Models.Entities;
+﻿using BotShopCore.Models.Entities;
 
-namespace ImportShopBot.Extensions {
+namespace BotShop.Extensions {
   public static class ProductExtensions {
     public static string ToProductCaption(this Product product) => string.Join(
       '\n',

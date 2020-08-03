@@ -1,97 +1,93 @@
-﻿using System.Linq;
-using System.Threading.Tasks;
-using ImportShopBot.Attributes;
-using ImportShopBot.Constants;
-using ImportShopBot.Extensions;
-using ImportShopBot.Extensions.Markup;
-using ImportShopBot.Services;
-using ImportShopCore.Extensions;
-using ImportShopCore.Models.Entities;
-using JetBrains.Annotations;
+﻿using System.Collections.Generic;
+using System.Linq;
+using BotCore.Attributes;
+using BotCore.Interfaces;
+using BotShop.Extensions;
+using BotShop.Models.ViewModels;
+using BotShop.Services;
+using BotShop.Services.I18N;
+using BotShopCore.Extensions;
+using BotShopCore.Models.Entities;
 using Microsoft.AspNetCore.Routing;
 
-namespace ImportShopBot.Controllers {
+namespace BotShop.Controllers {
   public class CartController {
-    private ProductService ProductService { get; }
-    private ReplyService ReplyService { get; }
-    private RouteValueDictionary RouteValues { get; }
-    private CartService CartService { get; }
+    private readonly ProductService _productService;
+    private readonly RouteValueDictionary _routeValues;
+    private readonly CartService _cartService;
+    private readonly IBotInputChat _chat;
+    private readonly II18NService _i18NService;
+    private readonly ViewModelService _viewModelService;
 
     public CartController(
-      ReplyService replyService,
       ProductService productService,
+      CartService cartService,
+      II18NService i18NService,
+      ViewModelService viewModelService,
       RouteValueDictionary routeValues,
-      CartService cartService
+      IBotInputChat chat
     ) {
-      ReplyService = replyService;
-      ProductService = productService;
-      RouteValues = routeValues;
-      CartService = cartService;
+      _productService = productService;
+      _routeValues = routeValues;
+      _cartService = cartService;
+      _chat = chat;
+      _i18NService = i18NService;
+      _viewModelService = viewModelService;
     }
 
-    [UsedImplicitly]
-    [QueryHandler(Queries.Cart)]
-    public void ShowCart() {
-      var cartItems = CartService.GetCartItems();
+    [BotQueryAction("cart")]
+    public IBotViewModel ShowCart() => _cartService.IsCartEmpty(_chat)
+      ? CreateEmptyCartMenu()
+      : CreateProductCardPage();
 
-      if (!cartItems.Any()) {
-        SendEmptyCart();
-        return;
-      }
+    [BotQueryAction("cart/add/{productId}", clearDisplayBeforeHandle: false)]
+    public object AddToCart() {
+      var product = _productService.ById(_routeValues.GetValue("productId").ParseInt());
+      _cartService.AddToCart(_chat, product.Id);
 
-      foreach (var cartItem in cartItems.SkipLast(1)) {
-        SendCartItem(cartItem);
-      }
-
-      SendCartItemWithMainMenuButton(cartItems.Last());
+      return new StringViewModel(
+        _i18NService["notifications.product-added-to-cart", new Values { ["name"] = product.Name }]
+      );
     }
 
-    [UsedImplicitly]
-    [QueryHandler(
-      Queries.AddToCart +
-      Queries.Separator +
-      Queries.StartInterpolation +
-      Variables.ProductId +
-      Queries.EndInterpolation,
-      false
-    )]
-    public void AddToCart() {
-      var productId = RouteValues.GetValue(Variables.ProductId).ParseInt();
-      var product = ProductService.ById(productId);
-      CartService.AddToCart(productId);
-      ReplyService.SendText(Labels.AddedToCart(product.Name));
+    [BotQueryAction("cart/remove/{cartItemId}")]
+    public object RemoveFromCart() {
+      _cartService.RemoveFromCart(_routeValues.GetValue("cartItemId").ParseInt());
+
+      return ShowCart();
     }
 
-    [UsedImplicitly]
-    [QueryHandler(
-      Queries.RemoveFromCart +
-      Queries.Separator +
-      Queries.StartInterpolation +
-      Variables.CartItemId +
-      Queries.EndInterpolation
-    )]
-    public void RemoveFromCart() {
-      var cartItemId = RouteValues.GetValue(Variables.CartItemId).ParseInt();
-      CartService.RemoveFromCartAsync(cartItemId);
-
-      ShowCart();
-    }
-
-    private void SendEmptyCart() => ReplyService.SendText(
-      Labels.CartIsEmpty,
-      Markups.ToMainMenuButton.ToInlineKeyboard()
+    private IBotViewModel CreateEmptyCartMenu() => _viewModelService.GetTranslatedMenuList(
+      "headers.empty-cart",
+      ("buttons.main-menu", "menu")
     );
 
-    private void SendCartItem(CartItem cartItem) => ReplyService.SendMedia(
-      cartItem.Product.MediaUrl.ToInputMedia(),
-      cartItem.Product.ToShortProductCaption(),
-      Markups.RemoveFromCartButton(cartItem.Id)
+    private IBotViewModel CreateProductCardPage() => new CardPageView(
+      _i18NService["headers.cart"],
+      GetProductCards(),
+      CreateProductCardPageActions()
     );
 
-    private void SendCartItemWithMainMenuButton(CartItem cartItem) => ReplyService.SendMedia(
-      cartItem.Product.MediaUrl.ToInputMedia(),
-      cartItem.Product.ToShortProductCaption(),
-      Markups.RemoveFromCartButton(cartItem.Id).Append(Markups.ToMainMenuButton)
+    private CardViewModel[] GetProductCards() => _productService
+      .GetProductsById(_cartService.GetCartItems(_chat).Select(cart => cart.Id))
+      .Select(CardFromProduct)
+      .ToArray();
+
+    // TODO: trim description text
+
+    private CardViewModel CardFromProduct(Product product) => new CardViewModel(
+      product.Name,
+      product.Description,
+      product.MediaUrl,
+      CreateProductCardActions(product.Id)
     );
+
+    private IEnumerable<ButtonViewModel> CreateProductCardPageActions() => new[] {
+      _viewModelService.GetTranslatedButton("buttons.main-menu", "menu")
+    };
+
+    private IEnumerable<ButtonViewModel> CreateProductCardActions(int productId) => new[] {
+      _viewModelService.GetTranslatedButton("buttons.remove-from-cart", $"cart/remove/{productId}")
+    };
   }
 }

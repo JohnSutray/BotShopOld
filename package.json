@@ -1,7 +1,0 @@
-﻿{
-  "name": "import-shop-bot",
-  "version": "1.0.0",
-  "scripts": {
-    "start-bot": "dotnet watch run"
-  }
-}

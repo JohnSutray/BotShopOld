@@ -6,3 +6,4 @@ Migrations
 appsettings.json
 appsettings.Development.json
 .vs
+.env

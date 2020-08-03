@@ -1,45 +1,46 @@
-﻿using ImportShopCore;
-using ImportShopCore.Attributes;
-using ImportShopCore.Models;
-using ImportShopCore.Models.Entities;
-using Telegram.Bot.Types;
-using Chat = ImportShopCore.Models.Entities.Chat;
+﻿using BotCore.Interfaces;
+using BotCore.Interfaces.BotEntities;
+using BotShopCore;
+using BotShopCore.Attributes;
+using BotShopCore.Models;
+using BotShopCore.Models.Entities;
+using Microsoft.EntityFrameworkCore;
 
-namespace ImportShopBot.Services {
-  [Service]
-  public class ChatService : RepositoryService<Chat> {
-    private Account Account { get; }
-    private User User { get; }
+namespace BotShop.Services {
+  [Service(ResolveType = typeof(IBotChatService))]
+  [Service(ResolveType = typeof(ChatService))]
+  public class ChatService : RepositoryService<Chat>, IBotChatService {
+    private readonly Account _account;
 
-    public ChatService(ApplicationContext context, Account account, User user)
-      : base(context, c => c.Chats) {
-      Account = account;
-      User = user;
+    public ChatService(ApplicationContext context, Account account) : base(context) => _account = account;
+
+    public void UpdateLastExecutedQuery(IBotInputChat inputChat, string query) =>
+      UpdateById(inputChat.Id, chat => chat.LastExecutedQuery = query);
+
+    public void UpdateChatAddress(IBotInputChat botInput, string address) =>
+      UpdateById(botInput.Id, chat => chat.Address = address);
+
+    public void UpdateChatPhone(IBotInputChat inputChat, string phone) =>
+      UpdateById(inputChat.Id, chat => chat.Phone = phone);
+
+    public void EnsureChatSaved(IBotInputChat inputChat) {
+      if (FindChat(inputChat) != null) return;
+
+      AddEntity(new Chat {
+        Id = inputChat.Id,
+        AccountId = _account.Id,
+        LastExecutedQuery = "menu",
+        Address = "",
+        Phone = "",
+        FirstName = inputChat.FirstName,
+        LastName = inputChat.LastName ?? "Не указано",
+        PlatformId = inputChat.PlatformId
+      });
     }
 
-    public void UpdateChatQuery(string query) => UpdateById(User.Id, chat => chat.Query = query);
+    public IBotChat FindChat(IBotInputChat inputChat) =>
+      ByPattern(chat => chat.Id == inputChat.Id && chat.PlatformId == inputChat.PlatformId);
 
-    public void UpdateChatAddress(string address) => UpdateById(User.Id, chat => chat.Address = address);
-
-    public void UpdateChatPhone(string phone) => UpdateById(
-      User.Id,
-      chat => chat.Phone = phone
-    );
-
-    public Chat GetCurrentChat() => ById(User.Id);
-
-    public Chat EnsureChatSaved() {
-      return ById(User.Id) is {} existingChat
-        ? existingChat
-        : AddEntity(new Chat {
-          Id = User.Id,
-          AccountId = Account.Id,
-          Query = "menu",
-          Address = "",
-          Phone = "",
-          FirstName = User.FirstName ?? User.Username,
-          LastName = User.LastName ?? "Не указано"
-        });
-    }
+    protected override DbSet<Chat> Set => Context.Chats;
   }
 }

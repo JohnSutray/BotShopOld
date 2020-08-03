@@ -2,7 +2,7 @@
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace ImportShopBot.Utils {
+namespace BotShop.Utils {
   public static class TimeUtils {
     public static async void SetInterval(TimeSpan interval, Action action, CancellationToken cancellationToken = new CancellationToken()) {
       while (true) {

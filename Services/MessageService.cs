@@ -1,48 +1,44 @@
 ﻿using System;
-using System.Linq;
-using System.Threading.Tasks;
-using ImportShopCore;
-using ImportShopCore.Attributes;
-using ImportShopCore.Models;
-using ImportShopCore.Models.Entities;
-using Telegram.Bot;
-using Telegram.Bot.Types;
+using System.Collections.Generic;
+using BotCore.Interfaces;
+using BotShopCore;
+using BotShopCore.Models;
+using BotShopCore.Models.Entities;
+using Microsoft.EntityFrameworkCore;
 
-namespace ImportShopBot.Services {
-  [Service]
-  public class MessageService : RepositoryService<TelegramMessage> {
-    private TelegramBotClient Client { get; }
-    private User User { get; }
-
-    public MessageService(
-      ApplicationContext context,
-      User user,
-      TelegramBotClient client
-    ) : base(
-      context,
-      applicationContext => applicationContext.Messages
-    ) {
-      User = user;
-      Client = client;
+namespace BotShop.Services.PlatformMessageService {
+  public abstract class MessageService : RepositoryService<BotMessage>, IBotMessageService {
+    protected MessageService(ApplicationContext context) : base(context) {
     }
 
-    public void ClearMessages() {
-      var messages = RemoveManyByPattern(message => message.ChatId == User.Id);
-      Task DeleteMessage(TelegramMessage message) => Client.DeleteMessageAsync(User.Id, message.Id);
+    protected override DbSet<BotMessage> Set => Context.Messages;
 
+    protected abstract void RemoveMessagesInPlatform(IBotInputChat chat, IEnumerable<BotMessage> messages);
+
+    private void RemoveMessage(IBotInputChat chat, BotMessage message) {
       try {
-        Task.WhenAll(messages.Select(DeleteMessage)).GetAwaiter().GetResult();
+        RemoveMessagesInPlatform(chat, new[] {message});
+        RemoveByPattern(m => m.Id == message.Id && m.PlatformId == chat.PlatformId);
       }
       catch (Exception e) {
         Console.WriteLine(e);
       }
     }
 
-    public void SaveMessage(Message message) => AddEntity(
-      new TelegramMessage {
-        Id = message.MessageId,
-        ChatId = User.Id
+    public void ClearMessages(IBotInputChat chat) => ByPatternMany(
+      message => message.ChatId == chat.Id && message.PlatformId == chat.PlatformId
+    ).ForEach(messageModel => RemoveMessage(chat, messageModel));
+
+    public void SaveMessage(IBotInputChat chat, IBotInputMessage message) {
+      if (ById(message.Id) == null) {
+        AddEntity(
+          new BotMessage {
+            Id = message.Id,
+            ChatId = chat.Id,
+            PlatformId = chat.PlatformId
+          }
+        );
       }
-    );
+    }
   }
 }

@@ -1,42 +1,35 @@
 ﻿using System.Collections.Generic;
 using System.Threading.Tasks;
-using ImportShopCore;
-using ImportShopCore.Attributes;
-using ImportShopCore.Models;
-using ImportShopCore.Models.Entities;
+using BotCore.Interfaces;
+using BotShopCore;
+using BotShopCore.Attributes;
+using BotShopCore.Models;
+using BotShopCore.Models.Entities;
+using Microsoft.EntityFrameworkCore;
 using Telegram.Bot.Types;
 
-namespace ImportShopBot.Services {
+namespace BotShop.Services {
   [Service]
   public class CartService : RepositoryService<CartItem> {
-    private User User { get; }
 
-    public CartService(
-      ApplicationContext context,
-      User user
-    ) : base(
-      context,
-      c => c.CartItems
-    ) => User = user;
+    public CartService(ApplicationContext context) : base(context) {}
 
-    public void AddToCart(int productId) => AddEntity(new CartItem {
-      ChatId = User.Id,
+    public void AddToCart(IBotInputChat chat, int productId) => AddEntity(new CartItem {
+      ChatId = chat.Id,
       ProductId = productId
     });
 
-    public List<CartItem> GetCartItems() => ByPatternMany(
-      item => item.ChatId == User.Id,
+    public List<CartItem> GetCartItems(IBotInputChat chat) => ByPatternMany(
+      item => item.ChatId == chat.Id,
       item => item.Product
     );
 
-    public void RemoveFromCartAsync(int cartItemId) => RemoveById(cartItemId);
+    public void RemoveFromCart(int cartItemId) => RemoveById(cartItemId);
 
-    public void ClearCart() => RemoveManyByPattern(item => item.ChatId == User.Id);
+    public void ClearCart(IBotInputChat chat) => RemoveManyByPattern(item => item.ChatId == chat.Id);
 
-    public bool IsCartEmpty() {
-      var itemsAmount = Count(item => item.ChatId == User.Id);
+    public bool IsCartEmpty(IBotInputChat chat) => Count(item => item.ChatId == chat.Id) == 0;
 
-      return itemsAmount == 0;
-    }
+    protected override DbSet<CartItem> Set => Context.CartItems;
   }
 }

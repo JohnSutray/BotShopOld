@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Routing;
 
-namespace ImportShopBot.Extensions {
+namespace BotShop.Extensions {
   public static class RouteValuesExtensions {
     public static string GetValue(
       this RouteValueDictionary routeValueDictionary,

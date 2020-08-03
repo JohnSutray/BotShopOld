@@ -1,0 +1,23 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>netcoreapp3.1</TargetFramework>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <PackageReference Include="JetBrains.Annotations" Version="2020.2.0-eap" />
+      <PackageReference Include="Telegram.Bot" Version="15.4.0" />
+      <PackageReference Include="VkNet" Version="1.52.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\BotCore\BotCore.csproj" />
+      <ProjectReference Include="..\BotShopCore\BotShopCore.csproj" />
+    </ItemGroup>
+    
+    <ItemGroup>
+      <None CopyToOutputDirectory="Always" CopyToPublishDirectory="Always" Include="I18n\*.json" />
+    </ItemGroup>
+
+</Project>

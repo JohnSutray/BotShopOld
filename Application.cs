@@ -1,12 +1,14 @@
 ﻿using System;
-using ImportShopBot.Models;
-using ImportShopBot.Utils;
+using BotShop.Models;
+using BotShop.Utils;
+using BotShopCore.Utils;
 
-namespace ImportShopBot {
+namespace BotShop {
   public class Application {
     private readonly BotManager _botManager = new BotManager();
 
     public void Start() {
+      DotEnvUtils.InjectDotEnvVars();
       _botManager.UpdateBots();
       TimeUtils.SetInterval(TimeSpan.FromSeconds(30), () => _botManager.UpdateBots());
     }
